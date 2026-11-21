@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#12B886">
+  <title>LAPKEU · Keuangan Berdua</title>
+  <!-- Pustaka dari CDN dengan versi tetap -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <script>
+    /* Konfigurasi publik (nama, warna, logo) diambil dari API di js/app.js saat aplikasi dibuka */
+    window.__PUBLIC__ = {};
+    /* Terapkan warna & mode gelap SEBELUM render agar tidak berkedip */
+    window.__applyColors = function (p, a) {
+      function rgb(h) { h = String(h || '#12B886').replace('#', ''); return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16) || 0; }); }
+      function lum(c) { var x = c.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * x[0] + 0.7152 * x[1] + 0.0722 * x[2]; }
+      function shade(c, f) { return '#' + c.map(function (v) { var x = Math.max(0, Math.min(255, Math.round(v * f))); return ('0' + x.toString(16)).slice(-2); }).join(''); }
+      var s = document.documentElement.style, P = rgb(p), A = rgb(a);
+      s.setProperty('--c-primary', p); s.setProperty('--c-primary-rgb', P.join(',')); s.setProperty('--c-primary-strong', shade(P, 0.86));
+      s.setProperty('--c-on-primary', lum(P) > 0.6 ? '#1F2A37' : '#FFFFFF');
+      s.setProperty('--c-accent', a); s.setProperty('--c-accent-rgb', A.join(',')); s.setProperty('--c-accent-strong', shade(A, 0.86));
+      s.setProperty('--c-on-accent', lum(A) > 0.6 ? '#1F2A37' : '#FFFFFF');
+      var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', p);
+    };
+    (function () {
+      var P = window.__PUBLIC__ || {}, pref = {};
+      try { pref = JSON.parse(localStorage.getItem('lapkeu_pref') || '{}'); } catch (e) {}
+      if (pref.dark) document.documentElement.setAttribute('data-theme', 'dark');
+      if (pref.motion === false) document.documentElement.classList.add('reduce-motion');
+      var c = pref.lastColors || { utama: P.warnaUtama, aksen: P.warnaAksen };
+      window.__applyColors(c.utama || '#12B886', c.aksen || '#7C5CFC');
+    })();
+  </script>
+</head>
+<body>
+  <!-- ── Simbol SVG: maskot "Koin" & ilustrasi ──────────────────────────── -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id="kg" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#FFE29A"/><stop offset=".6" stop-color="#FFC84A"/><stop offset="1" stop-color="#F5A300"/></radialGradient>
+      <symbol id="koin" viewBox="0 0 120 120">
+        <circle cx="60" cy="62" r="52" fill="#E08E00"/>
+        <circle cx="60" cy="58" r="52" fill="url(#kg)"/>
+        <circle cx="60" cy="58" r="42" fill="none" stroke="#F2A900" stroke-width="3" stroke-dasharray="4 6" opacity=".55"/>
+        <path d="M30 40a34 34 0 0 1 24-17" stroke="#FFF6DC" stroke-width="6" stroke-linecap="round" fill="none" opacity=".9"/>
+        <ellipse cx="45" cy="56" rx="5" ry="6.6" fill="#1F2A37"/><ellipse cx="75" cy="56" rx="5" ry="6.6" fill="#1F2A37"/>
+        <circle cx="46.8" cy="53.4" r="1.8" fill="#fff"/><circle cx="76.8" cy="53.4" r="1.8" fill="#fff"/>
+        <ellipse cx="35" cy="68" rx="7" ry="4" fill="#FF8FB1" opacity=".8"/><ellipse cx="85" cy="68" rx="7" ry="4" fill="#FF8FB1" opacity=".8"/>
+        <path d="M50 69q10 10 20 0" stroke="#1F2A37" stroke-width="3.6" stroke-linecap="round" fill="none"/>
+        <rect x="48" y="84" width="24" height="15" rx="4" fill="#12B886"/><circle cx="60" cy="91.5" r="3" fill="#FFE29A"/>
+      </symbol>
+      <symbol id="sparkle" viewBox="0 0 24 24"><path d="M12 0c1 6 6 11 12 12-6 1-11 6-12 12-1-6-6-11-12-12C6 11 11 6 12 0z" fill="currentColor"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- ── Splash ──────────────────────────────────────────────────────────── -->
+  <div id="splash" class="splash" role="status" aria-live="polite">
+    <div class="splash-inner">
+      <svg class="koin koin-bob"><use href="#koin"/></svg>
+      <div class="splash-title" id="splashName">LAPKEU</div>
+      <div class="splash-sub" id="splashMsg">Menyiapkan dompet kalian…</div>
+      <div class="splash-bar"><span></span></div>
+    </div>
+  </div>
+
+  <!-- ── Halaman Login & Aktivasi ────────────────────────────────────────── -->
+  <section id="auth" class="auth d-none" aria-label="Masuk ke aplikasi">
+    <div class="auth-art">
+      <div class="d-flex align-items-center gap-3 position-relative">
+        <span class="brand-logo authLogo"></span>
+        <div><b class="font-head fs-4 authName">LAPKEU</b><div class="opacity-75 authTag">Keuangan Berdua</div></div>
+      </div>
+      <h2>Catat bareng, tumbuh bareng, tetap punya ruang pribadi.</h2>
+      <p>Satu tempat untuk semua dompet, tabungan impian, dan tagihan rutin kalian berdua — cepat dicatat, jelas dibaca.</p>
+      <div class="position-relative mt-4" style="height:220px;max-width:460px">
+        <svg class="koin koin-lg koin-wave" style="position:absolute;left:150px;top:30px"><use href="#koin"/></svg>
+        <svg class="sparkle" style="left:310px;top:20px;width:22px;height:22px"><use href="#sparkle"/></svg>
+        <svg class="sparkle" style="left:120px;top:170px;width:14px;height:14px;animation-delay:.8s"><use href="#sparkle"/></svg>
+        <div class="float-chip" style="left:0;top:10px"><span class="tile tile-sm" style="background:#E6FAF2;color:#0CA678"><i class="bi bi-arrow-down"></i></span><div><small class="text-2">Pemasukan</small><b>+Rp 12.000.000</b></div></div>
+        <div class="float-chip" style="right:0;top:120px;animation-delay:1.2s"><span class="tile tile-sm" style="background:#F2EEFF;color:#7C5CFC"><i class="bi bi-lock-fill"></i></span><div><small class="text-2">Data privat</small><b>Tetap aman</b></div></div>
+      </div>
+    </div>
+    <div class="auth-panel">
+      <div class="auth-card">
+        <div class="auth-brand d-lg-none"><span class="brand-logo authLogo"></span><div><b class="authName">LAPKEU</b><small class="authTag">Keuangan Berdua</small></div></div>
+        <h1 class="auth-title" id="authTitle">Selamat datang kembali</h1>
+        <p class="auth-sub" id="authSub">Masuk dengan email dan PIN akunmu.</p>
+        <div id="authSetup" class="alert-soft mb-3 d-none"><i class="bi bi-tools"></i><span>Aplikasi belum di-setup. Super Admin perlu menjalankan <b>setupAppEnvironment()</b> di editor Apps Script.</span></div>
+        <div class="seg seg-block mb-4" role="tablist" aria-label="Pilih mode">
+          <button type="button" class="active" data-auth="login" role="tab" aria-selected="true"><i class="bi bi-box-arrow-in-right"></i>Masuk</button>
+          <button type="button" data-auth="aktivasi" role="tab" aria-selected="false"><i class="bi bi-key"></i>Aktivasi Akun</button>
+        </div>
+        <form id="formLogin" novalidate autocomplete="on">
+          <div class="mb-3">
+            <label class="form-label" for="lgEmail">Email</label>
+            <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" class="form-control" id="lgEmail" autocomplete="username" placeholder="nama@email.com" required></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="lgPin">PIN</label>
+            <div class="pin" data-pin>
+              <input type="password" class="pin-input" id="lgPin" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="current-password" aria-label="PIN minimal 6 digit">
+              <div class="pin-dots" aria-hidden="true"></div>
+              <button type="button" class="btn-icon pin-eye" aria-label="Tampilkan PIN"><i class="bi bi-eye"></i></button>
+            </div>
+          </div>
+          <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" id="lgRemember" checked>
+            <label class="form-check-label" for="lgRemember">Ingat perangkat ini (30 hari)</label>
+          </div>
+          <button type="submit" class="btn-x btn-primary-x btn-block" id="lgBtn"><i class="bi bi-box-arrow-in-right"></i>Masuk</button>
+        </form>
+        <form id="formAktivasi" class="d-none" novalidate>
+          <div class="alert-soft info mb-3"><i class="bi bi-envelope-paper-heart"></i><span>Masukkan kode undangan dari email atau dari Super Admin, lalu buat PIN minimal 6 digit.</span></div>
+          <div class="mb-3"><label class="form-label" for="akEmail">Email</label>
+            <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" class="form-control" id="akEmail" autocomplete="username" placeholder="nama@email.com" required></div></div>
+          <div class="mb-3"><label class="form-label" for="akKode">Kode undangan</label>
+            <div class="input-icon"><i class="bi bi-ticket-perforated"></i><input type="text" class="form-control text-uppercase" id="akKode" placeholder="ABCD-EFGH" maxlength="9" autocomplete="one-time-code" required></div></div>
+          <div class="mb-3"><label class="form-label" for="akPin">PIN baru</label>
+            <div class="pin" data-pin><input type="password" class="pin-input" id="akPin" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="new-password" aria-label="PIN baru"><div class="pin-dots" aria-hidden="true"></div><button type="button" class="btn-icon pin-eye" aria-label="Tampilkan PIN"><i class="bi bi-eye"></i></button></div>
+            <div class="form-hint">Minimal 6 digit angka. Hindari tanggal lahir atau angka berurutan.</div></div>
+          <div class="mb-3"><label class="form-label" for="akPin2">Ulangi PIN</label>
+            <div class="pin" data-pin><input type="password" class="pin-input" id="akPin2" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="new-password" aria-label="Ulangi PIN"><div class="pin-dots" aria-hidden="true"></div><button type="button" class="btn-icon pin-eye" aria-label="Tampilkan PIN"><i class="bi bi-eye"></i></button></div></div>
+          <div class="form-check mb-4"><input class="form-check-input" type="checkbox" id="akRemember" checked><label class="form-check-label" for="akRemember">Ingat perangkat ini</label></div>
+          <button type="submit" class="btn-x btn-accent-x btn-block" id="akBtn"><i class="bi bi-shield-check"></i>Aktifkan &amp; Masuk</button>
+        </form>
+        <p class="auth-foot">Belum punya akun? Minta Super Admin membuatkan akun untukmu.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Aplikasi (shell SPA) ────────────────────────────────────────────── -->
+  <div id="app" class="app d-none">
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <div class="sb-brand"><span class="brand-logo" id="sbLogo"></span><div class="sb-brand-text"><b id="sbName">LAPKEU</b><small id="sbTag">Keuangan Berdua</small></div></div>
+      <nav class="sb-nav" id="sbNav"></nav>
+      <div class="sb-foot">
+        <button type="button" class="sb-link" data-action="logout" title="Keluar"><i class="bi bi-box-arrow-left"></i><span>Keluar</span></button>
+        <div class="sb-ver"><span>Versi Sistem</span><span id="sbVer">v1.0</span></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="tb-brand"><span class="brand-logo" id="tbLogo"></span><h1 class="tb-title" id="tbTitle">Beranda</h1></div>
+        <div class="tb-search" role="search">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input type="search" id="globalSearch" placeholder="Cari transaksi, dompet, atau kategori…" aria-label="Cari transaksi" autocomplete="off">
+        </div>
+        <div class="tb-actions">
+          <span id="syncState" class="sync-state" hidden><span class="spin"></span><span id="syncText">Menyimpan…</span></span>
+          <button type="button" class="btn-x btn-primary-x d-none d-md-inline-flex" data-action="trx" data-jenis="Keluar"><i class="bi bi-plus-circle"></i>Catat Transaksi</button>
+          <button type="button" class="btn-icon d-md-none" data-action="search-mobile" aria-label="Cari"><i class="bi bi-search"></i></button>
+          <div class="dropdown">
+            <button type="button" class="btn-icon" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-label="Notifikasi" aria-expanded="false" id="btnNotif"><i class="bi bi-bell"></i><span class="notif-dot" id="notifDot" hidden></span></button>
+            <div class="dropdown-menu dropdown-menu-end notif-menu" id="notifMenu"></div>
+          </div>
+          <div class="dropdown">
+            <button type="button" class="user-chip" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu akun">
+              <span class="avatar avatar-lg" id="tbAvatar">R</span>
+              <span class="uc-text"><span class="uc-name" id="tbName">Pengguna</span><br><span class="uc-role" id="tbRole">Pengguna</span></span>
+              <i class="bi bi-chevron-down text-2 d-none d-lg-inline"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end" style="min-width:240px">
+              <div class="px-3 py-2"><b id="ddName">-</b><div class="text-2 small" id="ddEmail">-</div></div>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item" data-go="pengaturan"><i class="bi bi-gear"></i>Pengaturan</button>
+              <button class="dropdown-item" data-action="toggle-dark"><i class="bi bi-moon-stars"></i><span id="ddDark">Mode gelap</span></button>
+              <button class="dropdown-item" data-action="toggle-hide"><i class="bi bi-eye-slash"></i><span id="ddHide">Sembunyikan saldo</span></button>
+              <button class="dropdown-item" data-action="refresh"><i class="bi bi-arrow-clockwise"></i>Muat ulang data</button>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item text-danger" data-action="logout"><i class="bi bi-box-arrow-left text-danger"></i>Keluar</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SEMUA halaman dimuat sekali; navigasi hanya tampil/sembunyi (0 ms) -->
+      <main id="content" class="content" tabindex="-1">
+        <section class="page" id="page-beranda" data-page="beranda" aria-label="Beranda"></section>
+        <section class="page" id="page-dompet" data-page="dompet" aria-label="Dompet"></section>
+        <section class="page" id="page-mutasi" data-page="mutasi" aria-label="Mutasi"></section>
+        <section class="page" id="page-analisis" data-page="analisis" aria-label="Analisis"></section>
+        <section class="page" id="page-tabungan" data-page="tabungan" aria-label="Tabungan"></section>
+        <section class="page" id="page-tagihan" data-page="tagihan" aria-label="Tagihan"></section>
+        <section class="page" id="page-laporan" data-page="laporan" aria-label="Laporan"></section>
+        <section class="page" id="page-kategori" data-page="kategori" aria-label="Kategori"></section>
+        <section class="page" id="page-pengaturan" data-page="pengaturan" aria-label="Pengaturan"></section>
+        <section class="page" id="page-admin" data-page="admin" aria-label="Admin"></section>
+      </main>
+    </div>
+
+    <nav class="bottomnav" aria-label="Navigasi bawah">
+      <button type="button" class="bn-item" data-go="beranda"><i class="bi bi-grid-1x2"></i>Beranda</button>
+      <button type="button" class="bn-item" data-go="mutasi"><i class="bi bi-receipt"></i>Mutasi</button>
+      <div class="text-center"><button type="button" class="bn-fab" data-action="trx" data-jenis="Keluar" aria-label="Catat transaksi"><i class="bi bi-plus-lg"></i></button></div>
+      <button type="button" class="bn-item" data-go="tagihan"><i class="bi bi-calendar2-check"></i>Tagihan<span class="nav-badge warn" data-badge="tagihan" hidden></span></button>
+      <button type="button" class="bn-item" data-action="menu"><i class="bi bi-grid-3x3-gap"></i>Lainnya</button>
+    </nav>
+  </div>
+
+  <!-- ══════════════════════════ MODAL ══════════════════════════ -->
+
+  <!-- Catat / Edit Transaksi -->
+  <div class="modal fade modal-sheet" id="mTrx" tabindex="-1" aria-labelledby="mTrxTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+      <form class="modal-content" id="formTrx" novalidate>
+        <div class="modal-header">
+          <h2 class="modal-title" id="mTrxTitle">Catat Transaksi</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <div class="seg seg-block seg-trx mb-3" id="trxSeg" role="radiogroup" aria-label="Jenis transaksi">
+            <button type="button" data-v="Keluar" role="radio"><i class="bi bi-arrow-up-right"></i>Pengeluaran</button>
+            <button type="button" data-v="Masuk" role="radio"><i class="bi bi-arrow-down-left"></i>Pemasukan</button>
+            <button type="button" data-v="Transfer" role="radio"><i class="bi bi-arrow-left-right"></i>Pindah Saldo</button>
+          </div>
+          <label class="form-label" for="trxNominal">Nominal</label>
+          <div class="amount-box"><span>Rp</span><input type="text" id="trxNominal" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="trxNominalErr"></div>
+          <div class="invalid-msg" id="trxNominalErr" hidden>Nominal wajib diisi.</div>
+          <div class="quick-amt" id="trxQuick">
+            <button type="button" data-add="5000">+5rb</button><button type="button" data-add="10000">+10rb</button><button type="button" data-add="20000">+20rb</button>
+            <button type="button" data-add="50000">+50rb</button><button type="button" data-add="100000">+100rb</button><button type="button" data-add="0">Reset</button>
+          </div>
+          <div id="trxNormal" class="mt-3">
+            <div class="d-flex justify-content-between align-items-center"><label class="form-label mb-2">Kategori</label><button type="button" class="link-x" data-go="kategori" data-bs-dismiss="modal">Kelola</button></div>
+            <div class="pick-grid" id="trxKat" role="radiogroup" aria-label="Kategori"></div>
+            <div class="invalid-msg" id="trxKatErr" hidden>Pilih kategori.</div>
+            <label class="form-label mt-3 mb-2">Dompet</label>
+            <div class="chip-pick" id="trxDompet" role="radiogroup" aria-label="Dompet"></div>
+            <div class="invalid-msg" id="trxDompetErr" hidden>Pilih dompet.</div>
+          </div>
+          <div id="trxTransfer" class="row g-2 mt-2" hidden>
+            <div class="col-6"><label class="form-label" for="trxDari">Dari dompet</label><select class="form-select" id="trxDari"></select></div>
+            <div class="col-6"><label class="form-label" for="trxKe">Ke dompet</label><select class="form-select" id="trxKe"></select></div>
+          </div>
+          <div class="row g-2 mt-2">
+            <div class="col-sm-6"><label class="form-label" for="trxTanggal">Tanggal &amp; waktu</label><input type="datetime-local" class="form-control" id="trxTanggal" required></div>
+            <div class="col-sm-6"><label class="form-label" for="trxCatatan">Catatan</label><input type="text" class="form-control" id="trxCatatan" maxlength="300" list="dlCatatan" placeholder="mis. Kopi susu gula aren" autocomplete="off"><datalist id="dlCatatan"></datalist></div>
+          </div>
+          <div class="mt-3" id="trxFileWrap">
+            <label class="form-label">Foto struk / bukti <span class="text-2 fw-normal">(opsional · JPG, PNG, PDF · maks 5 MB)</span></label>
+            <input type="file" id="trxFile" accept="image/jpeg,image/png,application/pdf" hidden>
+            <button type="button" class="dropzone" id="trxDrop">
+              <span class="dz-thumb" id="trxThumb"><i class="bi bi-camera"></i></span>
+              <span class="flex-grow-1"><b id="trxFileName">Ambil foto atau pilih file</b><small class="d-block text-2" id="trxFileInfo">Foto otomatis dikompres agar cepat terkirim</small></span>
+              <span class="btn-icon" id="trxFileClear" role="button" aria-label="Hapus file" hidden><i class="bi bi-x-lg"></i></span>
+            </button>
+          </div>
+          <label class="form-label mt-3">Visibilitas</label>
+          <div class="seg seg-block seg-priv" id="trxPriv" role="radiogroup" aria-label="Visibilitas">
+            <button type="button" data-v="Bersama" role="radio"><i class="bi bi-people-fill"></i>Bersama</button>
+            <button type="button" data-v="Privat" role="radio"><i class="bi bi-lock-fill"></i>Privat</button>
+          </div>
+          <div class="form-hint" id="trxPrivHint">Bersama: terlihat semua anggota. Privat: hanya kamu.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-x btn-soft-x" id="trxSaveMore"><i class="bi bi-plus-lg"></i>Simpan &amp; Tambah Lagi</button>
+          <button type="submit" class="btn-x btn-primary-x" id="trxSave"><i class="bi bi-check2-circle"></i>Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Detail transaksi -->
+  <div class="modal fade modal-sheet" id="mDetail" tabindex="-1" aria-labelledby="mDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title" id="mDetailTitle">Detail Transaksi</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer" id="detailFoot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dompet -->
+  <div class="modal fade modal-sheet" id="mDompet" tabindex="-1" aria-labelledby="mDompetTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="formDompet" novalidate>
+        <div class="modal-header"><h2 class="modal-title" id="mDompetTitle">Dompet Baru</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label" for="dpNama">Nama dompet</label><input class="form-control" id="dpNama" maxlength="40" placeholder="mis. BCA Bersama" required></div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><label class="form-label" for="dpJenis">Jenis</label>
+              <select class="form-select" id="dpJenis"><option>Cash</option><option>Rekening Bank</option><option>E-Wallet</option><option value="__custom">Lainnya (custom)…</option></select></div>
+            <div class="col-6"><label class="form-label" for="dpSaldo">Saldo awal</label><input class="form-control" id="dpSaldo" inputmode="numeric" placeholder="0"></div>
+            <div class="col-12" id="dpCustomWrap" hidden><input class="form-control" id="dpJenisCustom" maxlength="30" placeholder="Tulis jenis, mis. Kartu Kredit"></div>
+          </div>
+          <label class="form-label">Warna</label><div class="swatches mb-3" id="dpWarna"></div>
+          <label class="form-label">Visibilitas</label>
+          <div class="seg seg-block seg-priv" id="dpPriv"><button type="button" data-v="Bersama"><i class="bi bi-people-fill"></i>Bersama</button><button type="button" data-v="Privat"><i class="bi bi-lock-fill"></i>Privat</button></div>
+          <div class="form-hint">Dompet bersama bisa dipakai mencatat oleh semua anggota.</div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn-x btn-danger-x me-auto" id="dpDel" hidden><i class="bi bi-archive"></i>Arsipkan</button><button type="submit" class="btn-x btn-primary-x"><i class="bi bi-check2-circle"></i>Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Kategori -->
+  <div class="modal fade modal-sheet" id="mKategori" tabindex="-1" aria-labelledby="mKatTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="formKategori" novalidate>
+        <div class="modal-header"><h2 class="modal-title" id="mKatTitle">Kategori Baru</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body">
+          <div class="d-flex align-items-center gap-3 mb-3"><span class="tile tile-lg" id="ktPreview"><i class="bi bi-tag"></i></span><div class="flex-grow-1"><label class="form-label" for="ktNama">Nama kategori</label><input class="form-control" id="ktNama" maxlength="40" placeholder="mis. Boba & Dessert" required></div></div>
+          <label class="form-label">Jenis</label>
+          <div class="seg seg-block seg-trx mb-3" id="ktJenis"><button type="button" data-v="Keluar">Pengeluaran</button><button type="button" data-v="Masuk">Pemasukan</button></div>
+          <label class="form-label">Ikon</label><div class="icon-grid mb-3" id="ktIkon"></div>
+          <label class="form-label">Warna</label><div class="swatches mb-3" id="ktWarna"></div>
+          <div class="form-check form-switch" id="ktStatusWrap" hidden><input class="form-check-input" type="checkbox" id="ktAktif" checked><label class="form-check-label" for="ktAktif">Kategori aktif</label></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn-x btn-danger-x me-auto" id="ktDel" hidden><i class="bi bi-trash3"></i>Hapus</button><button type="submit" class="btn-x btn-primary-x"><i class="bi bi-check2-circle"></i>Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabungan -->
+  <div class="modal fade modal-sheet" id="mTabungan" tabindex="-1" aria-labelledby="mTabTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <form class="modal-content" id="formTabungan" novalidate>
+        <div class="modal-header"><h2 class="modal-title" id="mTabTitle">Pos Tabungan Baru</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label" for="tbNama">Nama impian</label><input class="form-control" id="tbNama" maxlength="60" placeholder="mis. Liburan ke Jepang" required></div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><label class="form-label" for="tbTarget">Target (Rp)</label><input class="form-control" id="tbTarget" inputmode="numeric" placeholder="20.000.000" required></div>
+            <div class="col-6"><label class="form-label" for="tbTgl">Target tanggal</label><input type="date" class="form-control" id="tbTgl"></div>
+            <div class="col-12" id="tbAwalWrap"><label class="form-label" for="tbAwal">Saldo awal (opsional)</label><input class="form-control" id="tbAwal" inputmode="numeric" placeholder="0"></div>
+          </div>
+          <div class="mb-3"><label class="form-label" for="tbCatatan">Deskripsi</label><input class="form-control" id="tbCatatan" maxlength="200" placeholder="mis. Tiket pesawat promo + JR Pass"></div>
+          <label class="form-label">Ikon</label><div class="icon-grid mb-3" id="tbIkon"></div>
+          <label class="form-label">Warna</label><div class="swatches mb-3" id="tbWarna"></div>
+          <label class="form-label">Visibilitas</label>
+          <div class="seg seg-block seg-priv" id="tbPriv"><button type="button" data-v="Bersama"><i class="bi bi-people-fill"></i>Bersama</button><button type="button" data-v="Privat"><i class="bi bi-lock-fill"></i>Pribadi</button></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn-x btn-danger-x me-auto" id="tbDel" hidden><i class="bi bi-trash3"></i>Hapus</button><button type="submit" class="btn-x btn-primary-x"><i class="bi bi-check2-circle"></i>Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Setor / Tarik tabungan -->
+  <div class="modal fade modal-sheet" id="mSetor" tabindex="-1" aria-labelledby="mSetorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="formSetor" novalidate>
+        <div class="modal-header"><h2 class="modal-title" id="mSetorTitle">Setor Tabungan</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body">
+          <div class="list-row" id="stInfo"></div>
+          <div class="seg seg-block mb-3" id="stJenis"><button type="button" data-v="Setor"><i class="bi bi-plus-circle"></i>Setor</button><button type="button" data-v="Tarik"><i class="bi bi-dash-circle"></i>Tarik</button></div>
+          <label class="form-label" for="stNominal">Nominal</label>
+          <div class="amount-box mb-3"><span>Rp</span><input type="text" id="stNominal" inputmode="numeric" placeholder="0" autocomplete="off"></div>
+          <label class="form-label" for="stDompet" id="stDompetLbl">Ambil dari dompet</label>
+          <select class="form-select mb-1" id="stDompet"></select>
+          <div class="form-hint mb-3">Jika dipilih, saldo dompet ikut berkurang/bertambah otomatis.</div>
+          <label class="form-label" for="stCatatan">Catatan</label><input class="form-control" id="stCatatan" maxlength="200" placeholder="mis. Sisihkan gaji bulan ini">
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn-x btn-primary-x" id="stSave"><i class="bi bi-check2-circle"></i>Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tagihan -->
+  <div class="modal fade modal-sheet" id="mTagihan" tabindex="-1" aria-labelledby="mTgTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <form class="modal-content" id="formTagihan" novalidate>
+        <div class="modal-header"><h2 class="modal-title" id="mTgTitle">Tagihan Baru</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body">
+          <label class="form-label">Jenis cepat</label>
+          <div class="chip-pick mb-3" id="tgPreset"></div>
+          <div class="mb-3"><label class="form-label" for="tgNama">Nama tagihan</label><input class="form-control" id="tgNama" maxlength="60" placeholder="mis. Listrik Rumah" required></div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><label class="form-label" for="tgNominal">Nominal (Rp)</label><input class="form-control" id="tgNominal" inputmode="numeric" placeholder="450.000" required></div>
+            <div class="col-6"><label class="form-label" for="tgTempo">Jatuh tempo</label><input type="date" class="form-control" id="tgTempo" required></div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+            <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="tgUlang"><label class="form-check-label" for="tgUlang">Berulang otomatis</label></div>
+            <select class="form-select w-auto" id="tgPeriode" aria-label="Periode"><option>Bulanan</option><option>Mingguan</option><option>3 Bulanan</option><option>6 Bulanan</option><option>Tahunan</option></select>
+          </div>
+          <div class="form-hint mb-3">Saat ditandai lunas, tagihan periode berikutnya dibuat otomatis.</div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><label class="form-label" for="tgKategori">Kategori</label><select class="form-select" id="tgKategori"></select></div>
+            <div class="col-6"><label class="form-label" for="tgDompet">Dompet bayar</label><select class="form-select" id="tgDompet"></select></div>
+          </div>
+          <div class="mb-3"><label class="form-label" for="tgCatatan">Catatan</label><input class="form-control" id="tgCatatan" maxlength="200" placeholder="mis. IDPEL 5321… / autodebet"></div>
+          <label class="form-label">Visibilitas</label>
+          <div class="seg seg-block seg-priv" id="tgPriv"><button type="button" data-v="Bersama"><i class="bi bi-people-fill"></i>Bersama</button><button type="button" data-v="Privat"><i class="bi bi-lock-fill"></i>Privat</button></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn-x btn-danger-x me-auto" id="tgDel" hidden><i class="bi bi-trash3"></i>Hapus</button><button type="submit" class="btn-x btn-primary-x"><i class="bi bi-check2-circle"></i>Simpan</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tandai lunas -->
+  <div class="modal fade modal-sheet" id="mBayar" tabindex="-1" aria-labelledby="mBayarTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="formBayar" novalidate>
+        <div class="modal-header"><h2 class="modal-title" id="mBayarTitle">Tandai Lunas</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body">
+          <div class="list-row" id="byInfo"></div>
+          <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="byCatat" checked><label class="form-check-label" for="byCatat">Catat sebagai pengeluaran di dompet</label></div>
+          <div id="byFields" class="row g-2">
+            <div class="col-6"><label class="form-label" for="byDompet">Dompet</label><select class="form-select" id="byDompet"></select></div>
+            <div class="col-6"><label class="form-label" for="byKategori">Kategori</label><select class="form-select" id="byKategori"></select></div>
+            <div class="col-6"><label class="form-label" for="byNominal">Nominal dibayar</label><input class="form-control" id="byNominal" inputmode="numeric"></div>
+            <div class="col-6"><label class="form-label" for="byTanggal">Tanggal bayar</label><input type="datetime-local" class="form-control" id="byTanggal"></div>
+          </div>
+          <div class="alert-soft info mt-3" id="byNext" hidden></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn-x btn-primary-x"><i class="bi bi-check2-all"></i>Tandai Lunas</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Konfirmasi umum -->
+  <div class="modal fade" id="mConfirm" tabindex="-1" aria-labelledby="cfTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content text-center">
+        <div class="modal-body pt-4">
+          <span class="tile tile-lg mb-3" id="cfIcon" style="background:var(--danger-bg);color:var(--c-expense-text)"><i class="bi bi-exclamation-triangle"></i></span>
+          <h2 class="modal-title mb-2" id="cfTitle">Yakin?</h2>
+          <p class="text-2 mb-0" id="cfBody"></p>
+        </div>
+        <div class="modal-footer justify-content-center border-0 pt-0 pb-4">
+          <button type="button" class="btn-x btn-soft-x" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn-x btn-danger-x" id="cfOk">Hapus</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pratinjau struk -->
+  <div class="modal fade" id="mPreview" tabindex="-1" aria-labelledby="pvTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title" id="pvTitle">Bukti Transaksi</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body preview-body" id="pvBody"></div>
+        <div class="modal-footer"><button type="button" class="btn-x btn-soft-x" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i>Tutup</button><button type="button" class="btn-x btn-primary-x" id="pvDownload" disabled><i class="bi bi-download"></i>Unduh</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drill-down diagram -->
+  <div class="modal fade modal-sheet" id="mDrill" tabindex="-1" aria-labelledby="drTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><div><h2 class="modal-title" id="drTitle">Detail</h2><div class="text-2 small" id="drSub"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body" id="drBody"></div>
+        <div class="modal-footer"><button type="button" class="btn-x btn-primary-x" id="drGo"><i class="bi bi-receipt"></i>Lihat di Mutasi</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu "Lainnya" (ponsel) -->
+  <div class="modal fade modal-sheet" id="mMenu" tabindex="-1" aria-label="Menu lainnya" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title">Menu</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body"><div class="qa-grid" id="menuGrid" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: buat / ubah pengguna -->
+  <div class="modal fade modal-sheet" id="mUser" tabindex="-1" aria-labelledby="usTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="formUser" novalidate>
+        <div class="modal-header"><h2 class="modal-title" id="usTitle">Buat Akun</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label" for="usNama">Nama</label><input class="form-control" id="usNama" maxlength="40" required></div>
+          <div class="mb-3"><label class="form-label" for="usEmail">Email</label><input type="email" class="form-control" id="usEmail" maxlength="120" required></div>
+          <div class="mb-3"><label class="form-label" for="usPeran">Peran</label><select class="form-select" id="usPeran"><option>Pengguna</option><option>Super Admin</option></select></div>
+          <div class="form-check form-switch" id="usAktifWrap" hidden><input class="form-check-input" type="checkbox" id="usAktif"><label class="form-check-label" for="usAktif">Akun aktif</label></div>
+          <div class="alert-soft info mt-2" id="usInfo"><i class="bi bi-envelope-paper"></i><span>Pengguna menerima email berisi kode undangan untuk mengatur PIN pertama kali.</span></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn-x btn-primary-x" id="usSave"><i class="bi bi-person-plus"></i>Buat Akun</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin: tampilkan kode undangan -->
+  <div class="modal fade" id="mKode" tabindex="-1" aria-labelledby="kdTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center">
+        <div class="modal-body py-4" id="kdBody"></div>
+        <div class="modal-footer justify-content-center"><button type="button" class="btn-x btn-soft-x" id="kdCopy"><i class="bi bi-clipboard"></i>Salin kode</button><button type="button" class="btn-x btn-primary-x" data-bs-dismiss="modal">Selesai</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: tampilan data privat (setelah PIN pemilik) -->
+  <div class="modal fade" id="mPrivat" tabindex="-1" aria-labelledby="pvtTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
+      <div class="modal-content">
+        <div class="modal-header"><div><h2 class="modal-title" id="pvtTitle">Data Privat</h2><div class="text-2 small" id="pvtSub"></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal-body" id="pvtBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
